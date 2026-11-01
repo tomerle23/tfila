@@ -157,6 +157,33 @@ input[type="text"] { width:100%; padding:.6rem .85rem; direction:ltr; }
 .prayer-text { font-family:'Frank Ruhl Libre',serif; font-size:1.05rem; line-height:1.88; white-space:pre-wrap; }
 .divider { display:none; }
 
+/* ── Daily Prayer Card ── */
+.daily-prayer-card {
+  margin-top:1.1rem; border-radius:var(--radius);
+  background:linear-gradient(135deg,#fdf8ee 0%,#fdf3dc 100%);
+  border:1.5px solid var(--gold); padding:1.2rem 1.5rem;
+  box-shadow:0 2px 12px rgba(184,151,90,.18);
+}
+.daily-prayer-header {
+  display:flex; align-items:center; gap:.7rem; margin-bottom:.75rem; flex-wrap:wrap;
+}
+.daily-day-badge {
+  display:inline-flex; align-items:center; gap:.3rem;
+  background:var(--gold); color:#fff; font-size:.82rem; font-weight:700;
+  padding:.28rem .85rem; border-radius:999px; letter-spacing:.03rem;
+  box-shadow:0 2px 6px rgba(184,151,90,.35);
+}
+.daily-prayer-title {
+  font-family:'Frank Ruhl Libre',serif; font-size:1.05rem;
+  color:#8a6e3a; font-weight:500;
+}
+.daily-subtitle { font-size:.78rem; color:var(--text-muted); }
+.daily-prayer-text {
+  font-family:'Frank Ruhl Libre',serif; font-size:1.04rem; line-height:1.9;
+  white-space:pre-wrap; color:var(--text);
+  border-top:1px solid rgba(184,151,90,.25); padding-top:.75rem;
+}
+
 /* ── Finished button ── */
 #finished-section { display:none; margin-top:1.2rem; }
 #finished-section.visible { display:block; }
@@ -322,6 +349,18 @@ footer span { color:var(--gold); }
         <div id="prayer-list"></div>
       </div>
 
+      <!-- Daily Prayer -->
+      <div id="daily-prayer-section" class="daily-prayer-card" style="display:none;">
+        <div class="daily-prayer-header">
+          <span class="daily-day-badge" id="daily-day-badge">יום א'</span>
+          <div>
+            <div class="daily-prayer-title">שיר של יום</div>
+            <div class="daily-subtitle" id="daily-subtitle"></div>
+          </div>
+        </div>
+        <div class="daily-prayer-text" id="daily-prayer-text"></div>
+      </div>
+
       <!-- Finished button -->
       <div id="finished-section">
         <button class="btn-success" id="btn-finished" onclick="markFinished()">✅ סיימתי לקרוא</button>
@@ -476,15 +515,178 @@ const PRAYERS_SRC = [
 ];
 
 /* ══════════════════════════════════════════════
+   DAILY PRAYERS — שיר של יום (0=Sunday … 6=Saturday)
+══════════════════════════════════════════════ */
+const DAILY_NAMES = ['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי','יום שישי','שבת קודש'];
+const DAILY_SUBTITLES = [
+  'היום יום ראשון אחרי שבת',
+  'היום יום שני אחרי שבת',
+  'היום יום שלישי — פעמיים כי טוב — אחרי שבת',
+  'היום יום רביעי אחרי שבת',
+  'היום יום חמישי אחרי שבת',
+  'היום יום שישי אחרי שבת',
+  'שבת שלום ומבורך'
+];
+const DAILY_PRAYERS = [
+  /* 0 — יום א' */
+  `אוֹר נִבְרָא בְּתוֹךְ חֲשֵׁכָה יוֹם וָלַיְלָה בְּהַבְדָּלָה בְּרוּכָה
+
+אלהים, לך שייך העולם,
+אתה בראת, אתה יצרת.
+ביסודות איתנים חיזקת אותו,
+ובאור ושפע ברכת את כולו.
+
+כל מחפשי האור, זוכרים ושומעים: עושים הישר בעיני ה'
+פותחים את ליבנו, מרימים ראש בגאון,
+מקבלים את הטוב ואת אורו בחזון.
+
+מי הוא הטוב הנעלה מכולם?
+אלהים, בכוחו שוכן העולם.
+הגיבור בטובו ובאורו מאיר,
+בכל הדורות שמו מזהיר.
+מי עומדים במקום קדוש ונשגב?
+אלו שליבם טהור ומעשיהם זהב.
+כובשים את יצרנו, בוחרים בשלום, ועושים חסד וצדקה,
+אלהים ישמרנו יאירנו ויברכנו לעד.
+תודה ה' תודה על הכל.
+תודה ה' תודה על הכל.`,
+
+  /* 1 — יום ב' */
+  `רָקִיעַ נִפְרַשׂ בַּמַּיִם נִקְרָא הוּא שָׁמַיִם
+
+אלהים אדיר, נישא בשבחה,
+הוא מקור האור והברכה.
+
+משיב מקדשו לעירו, משיב את שכינתו
+לעירו ירושלים היפה,
+העיר הקדושה, בלב הדור.
+אנשים צועדים יחדיו בנחישות,
+למען הטוב, באחדות ובשותפות.
+התרגשות עולה, תקווה בלבבות,
+אור חדש זורח, מחזק נשמות.
+תודה אלהים, על חסד ואהבה,
+שמך נישא, מהדהד בתהילה.
+צדקך מושל, הטוב מתגלה,
+אתה לנו לנצח, את הטוב מראה.
+תודה ה' תודה על הכל.
+תודה ה' תודה על הכל.`,
+
+  /* 2 — יום ג' */
+  `הַמַּיִם נִקְבְּצוּ אֶל יָם וְהַיַּבָּשָׁה נִגְלְתָה לעולם
+הָאֲדָמָה הִצְמִיחָה דֶּשֶׁא לַח וְעֵץ פְּרִי לְמִינוֹ פָּרַח
+
+אלהים שוכן בלב הטובים,
+מורה הדרך, פותח שבילים.
+שואפים תמיד לראות את האור,
+ולהיות בעלי לב טהור.
+מאירים את הדרך, שופטים ביושר,
+עוזרים לחלש, מחזקים את הרך,
+מפזרים אהבה, מביאים ברכה.
+בונים עולם יציב ומואר.
+אלהים, מברך את כולם,
+משרה שלום, אהבה בעולם.
+ואנחנו חלק מטובך הגדול,
+מפיצים אהבה אמונה בריאות ושלום.
+תודה ה' תודה על הכל.
+תודה ה' תודה על הכל.`,
+
+  /* 3 — יום ד' */
+  `שֶׁמֶשׁ, יָרֵחַ וְכוֹכְבֵים את השמיים מאירים
+לְאוֹתוֹת וּלְמוֹעֲדִים נִקְבְּעוּ הַזְּמַנִּים
+
+אלהים, מקור הצדק והאור,
+באהבתך העולם מואר וקיים.
+שופט אמת, מתגמל בנדיבות, את כולם בכוח ובטוב.
+נותן יד לחלש, נחמה לסובל,
+ללב השבור — חיזוק מתפעל.
+יתומים וגרים מוצאים בך חום,
+אלמנות קמות בגבורה ושלום.
+תמיד עימנו בכל מקום.
+אתה מדריך, ומלמד תבונה,
+נושא את האדם לחיים באמונה.
+אלהים אתה, כוחו של העולם!
+תודה ה' תודה על הכל.
+תודה ה' תודה על הכל.`,
+
+  /* 4 — יום ה' */
+  `דָּגִים, עוֹפוֹת וּשְׁרָצִים מִתְרַבִּים תְּחִלַּת הַחַיִּים בְּשִׁירָה וּשְׁבָחִים
+
+אנחנו שרים בשמחה גדולה,
+לאלהים, מקור הגבורה.
+מריעים, מרננים, שרים, מנגנים בתוף וכינור,
+שמחים עם אלהים ביום האור.
+אלהים לעד תומך, ונותן,
+בדרכים נסתרות מנגן.
+הקשיבו לי, אוהבי אלהים,
+אנו הולכים באור, ובנתיב ישרים.
+פותחים לבבנו, ומתמלאים באהבה,
+אלהים נותן שפע ותקווה.
+אנו הולכים בדרכו הטובה,
+והוא (אלהים) מובילנו לשלום אחדות ושלווה.
+תודה ה' תודה על הכל.
+תודה ה' תודה על הכל.`,
+
+  /* 5 — יום ו' */
+  `בְּהֵמָה וָרֶמֶשׁ יָצְאוּ אֶל הָאוֹר וְאָדָם נִבְרָא עַל הַכֹּל לִשְׁמֹר
+לִפְרוֹת וְלִרְבּוֹת בִּבְרָכָה וּבְשִׁיר וְהִנֵּה טוֹב מְאֹד הַיּוֹם הַמֵּאִיר
+
+אלהים אתה המלך, עטור בהדר,
+לבוש עוז ותפארת, שליט נהדר.
+עולם על תילך בידך עומד,
+מלכותך היא פאר עוז והדר.
+כל בני האדם שרים יחדיו — אין כמוך בעולם ה'.
+הנהרות והימים מרימים קולם בשיר,
+גליהם בגאווה רועמים באוויר — אתה לבדך מולך לעולמים.
+
+אתה שוכן מעלינו, גבוה מכל,
+עוצמתך אל חי לנצח תמשול.
+תודה ה' תודה על הכל.
+תודה ה' תודה על הכל.
+
+קדושה ויופי בביתך מאירים,
+חוקיך נאמנים, לעד תקפים.
+כי אתה לבדך שולט בתבל,
+חיינו בידך — אתה כל יכול.
+מלך נצחי, את צדקתך וחסדך בשמחה מקבלים ומקיימים.
+
+השבת הקדושה — מקור הברכה. שנזכה להתענג עליה, לשמור על קדושתה ולמצוא בה שלום ושלווה. עורר בנו רצון ללמוד וללמד, לשמור ולעשות, ולזכות את הרבים באור התורה.
+תודה ה' תודה על הכל.
+תודה ה' תודה על הכל.`,
+
+  /* 6 — שבת */
+  `מִזְמוֹר שִׁיר לְיוֹם הַשַּׁבָּת
+
+שבת שלום ומבורך!
+יום המנוחה, יום הקדושה, יום האור.
+אתה קידשת את יום השביעי, בָּרַכְתָּ וְקִדַּשְׁתָּ אוֹתוֹ מִכָּל הַיָּמִים.
+
+שנזכה לשמור ולקיים שבת קודש בשמחה ובאהבה,
+לנוח מכל מלאכה ולהתענג בתורתך הקדושה.
+יהי שלום בחילך, שלווה בארמנותיך.
+תודה ה' תודה על הכל.
+תודה ה' תודה על הכל.`
+];
+
+function getDailyPrayer() {
+  const day = new Date().getDay(); // 0=Sunday … 6=Saturday
+  return {
+    name:     DAILY_NAMES[day],
+    subtitle: DAILY_SUBTITLES[day],
+    text:     DAILY_PRAYERS[day]
+  };
+}
+
+/* ══════════════════════════════════════════════
    STORAGE KEYS & DEFAULTS
 ══════════════════════════════════════════════ */
-const LS_SETTINGS = 'prayerSettings_v1';
-const LS_CUSTOM   = 'prayerCustom_v1';
-const LS_STATS    = 'prayerStats_v2';   // { sessions:N, reads:{ [id]:N } }
+const LS_SETTINGS = 'prayerSettings_v2';
+const LS_CUSTOM   = 'prayerCustom_v2';
+const LS_STATS    = 'prayerStats_v2';
+const LS_DAILY    = 'dailyPrayers_v1';
 
 const DEFAULT_CAT = id => {
-  if ([1,3,4,5,6,7].includes(id))      return 'start';
-  if ([38,39,40,41,42,43].includes(id)) return 'end';
+  if (id <= 6)  return 'start';
+  if (id >= 34) return 'end';
   return 'mid';
 };
 
@@ -647,6 +849,14 @@ function renderResult(prayers, mandCount) {
 
   elResults.classList.add('visible');
   document.getElementById('finished-section').classList.add('visible');
+
+  // Show daily prayer
+  const daily = getDailyPrayer();
+  document.getElementById('daily-day-badge').textContent  = daily.name;
+  document.getElementById('daily-subtitle').textContent   = daily.subtitle;
+  document.getElementById('daily-prayer-text').textContent = daily.text;
+  document.getElementById('daily-prayer-section').style.display = 'block';
+
   elResults.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
